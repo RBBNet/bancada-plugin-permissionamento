@@ -1,0 +1,10 @@
+# Configuração do gitleaks para este repositório.
+# As únicas chaves privadas permitidas são as de TESTE de conhecimento público listadas abaixo.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Chaves de teste de conhecimento público (roteiro da RBB / Truffle / Hardhat)"
+regexes = [
+  '''c87509a1c067bbde78beb793e6fa76530b6382a4c0241e5e4a9ec0a0f44dc0d3''',
+]

@@ -1,0 +1,8 @@
+{
+  "name": "bancada-ferramentas",
+  "private": true,
+  "description": "Ferramentas de teste da bancada (envio de transações e consultas aos contratos de permissionamento)",
+  "dependencies": {
+    "ethers": "6.17.0"
+  }
+}

@@ -38,6 +38,35 @@ Este repositório é público. Por isso:
 O histórico do Git é permanente: apagar um arquivo não o remove do histórico. Na dúvida,
 não faça o commit. O repositório tem varredura automática de segredos (gitleaks) a cada push.
 
+## Como executar
+
+**Na sua máquina:** requer Docker (com Compose), Node.js 20+, git, jq, curl e python3.
+
+```bash
+./executar.sh                  # executa tudo e derruba a rede ao final
+MANTER_REDE=1 ./executar.sh    # mantém a rede de pé para inspeção (RPC nas portas 20001–20003)
+```
+
+Cada execução gera `execucoes/<data-hora>/`, com o relatório `resumo.md` e todas as
+evidências. O código de saída é 0 se todas as verificações passarem.
+
+**No GitHub:** aba *Actions* → *Bancada* → *Run workflow*. A página da execução mostra o log
+de cada passo e o resumo; as evidências ficam anexadas como artefato.
+
+## O que é executado hoje
+
+| Etapa | O que faz | Estado resultante |
+|---|---|---|
+| Fase 00 | Registra o ambiente, baixa `start-network`, `Permissionamento` e `scripts-permissionamento` nos commits fixados em `versoes.env`, constrói o `rbb-cli` e instala as dependências | — |
+| Fase 01 | Roteiro 1–3: chaves, gênesis (QBFT, Ingress do gen01 sem Rules), configuração e subida do validator (Besu 25.5.0, Forest) | **E0** |
+| Fase 02 | Roteiro 4.1–4.4: deploy do gen01, subida do boot e do writer | **E1** |
+| Fase 03 | Roteiro 4.5–4.9: deploy do gen02, cadastro dos nós, reapontamento dos Ingress | **E2** |
+| T-01, T-02 | Linha de base do permissionamento **nativo**: conta permitida × conta não cadastrada | — |
+| T-03 | Nativo × caminho do plugin em estados históricos (antes e depois das regras). Testa a lógica dos contratos via `eth_call`; **não** executa um nó com o plugin | — |
+
+Toda diferença deliberada em relação ao roteiro oficial é impressa na execução como
+"DESVIO DO ROTEIRO" e listada no relatório.
+
 ## Estado
 
 Em construção. Primeira meta: montar automaticamente a rede básica do
