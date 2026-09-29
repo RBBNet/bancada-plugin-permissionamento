@@ -42,7 +42,7 @@ desvio "BESU_DATA_STORAGE_FORMAT=FOREST nos três nós: a 25.5.0 usa BONSAI por 
 for n in validator boot writer; do
   rbbcli config set "nodes.$n.environment.BESU_DATA_STORAGE_FORMAT=\"FOREST\""
 done
-desvio "log.xml: console e besu_info.log passam a incluir WARN (o original só grava INFO e ERROR), e o novo besu_bancada.log reúne ERROR..DEBUG com logger e thread"
+desvio "log.xml: console e besu_info.log passam a incluir WARN (o original só grava INFO e ERROR), o novo besu_bancada.log reúne ERROR..DEBUG com logger e thread, e o besu_permissionamento.log grava TRACE dos pacotes de permissionamento (nativo e plugin), onde o Besu registra cada decisão de conexão com os enodes"
 python3 - "$SN/.env.configs/log.xml" <<'PY'
 import sys
 p = sys.argv[1]; s = open(p).read(); orig = s
@@ -59,9 +59,24 @@ extra = '''
         </RollingFile>
 
     </Appenders>'''
+extra = extra.replace('\n    </Appenders>', '''
+        <RollingFile name="permissionamentoLog" fileName="${LOG_BASE_PATH}/besu_permissionamento.log" filePattern="${LOG_BASE_PATH}/permissionamento/app-%d{MM-dd-yyyy}-%i.log">
+            <PatternLayout pattern="%d{yyyy-MM-dd'T'HH:mm:ss.SSSZ} %-5p [%t] %c{1} - %m%n" />
+            <Policies><SizeBasedTriggeringPolicy size="50 MB" /></Policies>
+            <DefaultRolloverStrategy max="50" />
+        </RollingFile>
+
+    </Appenders>''')
 s = s.replace('\n    </Appenders>', extra, 1)
+s = s.replace('    </Loggers>', '''        <Logger name="org.hyperledger.besu.ethereum.permissioning" level="trace" additivity="true">
+            <AppenderRef ref="permissionamentoLog" />
+        </Logger>
+        <Logger name="org.hyperledger.besu.plugin.permissioning" level="trace" additivity="true">
+            <AppenderRef ref="permissionamentoLog" />
+        </Logger>
+    </Loggers>''', 1)
 s = s.replace('<AppenderRef ref="debugLog" />', '<AppenderRef ref="debugLog" />\n            <AppenderRef ref="bancadaLog" />')
-assert s.count('minLevel="WARN" maxLevel="INFO"') == 2 and 'bancadaLog' in s, "log.xml com formato inesperado"
+assert s.count('minLevel="WARN" maxLevel="INFO"') == 2 and 'bancadaLog' in s and s.count('permissionamentoLog') == 3, "log.xml com formato inesperado"
 open(p, 'w').write(s)
 PY
 desvio "imagem do Besu fixada por digest (${BESU_IMAGEM_INICIAL}); o compose usa hyperledger/besu sem versão, o que traria a mais recente, já sem permissionamento nativo"

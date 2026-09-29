@@ -63,6 +63,7 @@ de cada passo e o resumo; as evidências ficam anexadas como artefato.
 | Fase 03 | Roteiro 4.5–4.9: deploy do gen02, cadastro dos nós, reapontamento dos Ingress | **E2** |
 | T-01, T-02 | Linha de base do permissionamento **nativo**: conta permitida × conta não cadastrada | — |
 | T-03 | Nativo × caminho do plugin em estados históricos (antes e depois das regras). Testa a lógica dos contratos via `eth_call`; **não** executa um nó com o plugin | — |
+| T-04 | Permissionamento **nativo** de nós: um nó novo, não cadastrado, tenta conectar ao boot e é recusado (evidência: linha `Rejected enode://…` no log TRACE de permissionamento do boot). É cadastrado no NodeRulesV2 e conecta e sincroniza sozinho (linha `Permitted enode://…`) | **E3** |
 
 Toda diferença deliberada em relação ao roteiro oficial é impressa na execução como
 "DESVIO DO ROTEIRO" e listada no relatório.

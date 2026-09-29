@@ -30,7 +30,7 @@ finalizar() {
   echo; echo "── Finalização ────────────────────────────────────────────────────"
   if [ -f "$TRAB/start-network/docker-compose.yml" ]; then
     mkdir -p "$EXEC_DIR/nos"
-    for n in validator boot writer; do
+    for n in $(ls "$TRAB/start-network/volumes" 2>/dev/null); do
       (cd "$TRAB/start-network" && docker compose logs --timestamps "$n" > "$EXEC_DIR/nos/$n-console.log" 2>&1)
       [ -d "$TRAB/start-network/volumes/$n/logs" ] && cp -r "$TRAB/start-network/volumes/$n/logs" "$EXEC_DIR/nos/$n-arquivos"
     done
@@ -64,6 +64,7 @@ trap finalizar EXIT
 
 echo "Bancada do plugin de permissionamento da RBB — execução $EXEC_ID"
 for f in fases/00-preparar.sh fases/01-rede-e0.sh fases/02-gen01-e1.sh fases/03-gen02-e2.sh \
-         testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh; do
+         testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh \
+         testes/T04-permissionamento-no.sh; do
   source "$RAIZ/$f"
 done
