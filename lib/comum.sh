@@ -89,6 +89,8 @@ _registrar_verificacao() {
   echo "  ┌ [$id] $desc"
   echo "  │ esperado: $esperado"
   echo "  │ obtido:   $obtido"
+  # Dados brutos: a saída exata da ferramenta que fez o teste (ex.: remetente, hash, bloco)
+  [ "$dados" != "null" ] && echo "  │ dados brutos: $dados"
   if [ "$ok" = true ]; then echo "  └ ✔ OK"; else echo "  └ ✘ FALHOU"; FALHAS=$((FALHAS + 1)); fi
   jq -cn --arg t "$(agora)" --arg id "$id" --arg d "$desc" --arg e "$esperado" --arg o "$obtido" \
     --argjson ok "$ok" --argjson dados "$dados" --arg estado "${ESTADO_ATUAL:-}" \
