@@ -40,6 +40,8 @@ finalizar() {
     else
       (cd "$TRAB/start-network" && docker compose down -v >/dev/null 2>&1)
       echo "  · rede derrubada"
+      # clones, dependências e dados dos nós não são evidência e ocupam ~1 GB por execução
+      rm -rf "$TRAB" 2>/dev/null && echo "  · pasta de trabalho removida (evidências preservadas)"
     fi
   fi
   bash "$RAIZ/lib/relatorio.sh" "$EXEC_DIR" > "$EXEC_DIR/resumo.md"
