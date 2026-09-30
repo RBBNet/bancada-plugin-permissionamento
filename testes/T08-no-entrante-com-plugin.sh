@@ -5,12 +5,17 @@
 #   2. É cadastrado no NodeRulesV2 (E4 → E5). Especificação: conecta e baixa a cadeia inteira
 #      (sincronização FULL a partir do gênesis, como no roteiro de adição de nós).
 #
-# As verificações seguem a ESPECIFICAÇÃO (o que deveria acontecer). Há indícios (T-03) de que um
-# nó com o plugin não consegue processar os blocos iniciais da cadeia, anteriores à implantação
-# das regras. Numa conexão com plugin nas duas pontas, CADA lado decide com base no próprio estado
-# da cadeia; por isso registramos os logs de permissionamento dos dois lados.
+# DEMONSTRAÇÃO PERMANENTE DE DEFEITO do plugin (confirmado em 30/09/2026 com a v1.0.0-rc.1):
+# o plugin do próprio entrante avalia a conexão de saída no estado da cadeia DELE, que está no
+# gênesis, onde o NodeIngress ainda não aponta para nenhum NodeRules. Ele resolve o endereço zero,
+# registra "Could not resolve NodeRules contract address. Rejecting connection." e recusa a própria
+# conexão — antes e depois do cadastro. Sem conexão, não baixa blocos (impasse).
+# Especificação (o que deveria acontecer): recusado sem cadastro; após o cadastro, conecta e baixa a
+# cadeia inteira. Os itens 🐞 abaixo esperam o comportamento DEFEITUOSO e passam enquanto ele se
+# reproduzir. Quando houver versão corrigida do plugin, um teste novo a usará esperando a especificação.
 
-fase "Teste T-08: nó entrante com plugin — recusa, cadastro, conexão e sincronização desde o gênesis"
+fase "Teste T-08: nó entrante com plugin não consegue entrar na rede (🐞 demonstração de defeito do plugin ${PLUGIN_VERSAO})"
+REF_DEFEITO="plugin ${PLUGIN_VERSAO}: NodeRules não resolvido no estado do gênesis${ISSUE_PLUGIN_NODERULES_GENESIS:+ — $ISSUE_PLUGIN_NODERULES_GENESIS}"
 ESTADO_ATUAL="E4"
 SN="$TRAB/start-network"
 SP="$TRAB/scripts-permissionamento"
@@ -64,9 +69,12 @@ grep -v Checking "$LOG_PERM_ENT" 2>/dev/null | grep -E "Rejected|Permitted|Could
 fato t08.entrante_recusou_propria_saida_antes_do_cadastro "$(grep -c "Rejected enode://$K_ENT.*-> enode://$K_NOVO" "$LOG_PERM_ENT" 2>/dev/null || true) linha(s)"
 
 verificar T-08b "entrante sem nenhum par durante 90 s" "0" "$max_pares"
-verificar_que T-08c "plugin do nó 'novo' recusou o entrante (log TRACE do 'novo')" \
-  "≥ 1 linha 'Rejected enode://<entrante>' no 'novo'" "$(conta_novo "Rejected enode://$K_ENT") linha(s)" \
-  test "$(conta_novo "Rejected enode://$K_ENT")" -ge 1
+reproduzir_defeito_que "$REF_DEFEITO" T-08c "plugin do PRÓPRIO entrante recusa a conexão de saída (NodeRules não resolvido; especificação: a recusa deveria vir do 'novo')" \
+  "≥ 1 'Could not resolve NodeRules' e ≥ 1 'Rejected enode://<entrante> -> enode://<novo>' no entrante; 0 decisões sobre o entrante no 'novo'" \
+  "$(grep -c 'Could not resolve NodeRules contract address' "$LOG_PERM_ENT" 2>/dev/null || true) 'Could not resolve'; $(grep -c "Rejected enode://$K_ENT.*-> enode://$K_NOVO" "$LOG_PERM_ENT" 2>/dev/null || true) 'Rejected' no entrante; $(( $(conta_novo "Rejected enode://$K_ENT") + $(conta_novo "Permitted enode://$K_ENT") )) decisões no 'novo'" \
+  test "$(grep -c 'Could not resolve NodeRules contract address' "$LOG_PERM_ENT" 2>/dev/null || true)" -ge 1 \
+    -a "$(grep -c "Rejected enode://$K_ENT.*-> enode://$K_NOVO" "$LOG_PERM_ENT" 2>/dev/null || true)" -ge 1 \
+    -a "$(( $(conta_novo "Rejected enode://$K_ENT") + $(conta_novo "Permitted enode://$K_ENT") ))" -eq 0
 verificar T-08d "entrante parado no bloco 0" "0" "$(bloco_atual "$PORTA_ENTRANTE")"
 
 passo "Cadastrar o entrante no NodeRulesV2"
@@ -95,10 +103,13 @@ info "console do entrante — importação de blocos e erros (até 10 linhas):"
   | tail -10 | cut -c1-240 | sed 's/^/    │ /'
 mkdir -p "$EXEC_DIR/nos"; ( cd "$SN" && docker compose logs --timestamps entrante > "$EXEC_DIR/nos/entrante-console-t08.log" 2>&1 )
 
-verificar_que T-08f "entrante conectado após o cadastro" "≥ 1 par" "$(pares "$PORTA_ENTRANTE") par(es)" tem_pares "$PORTA_ENTRANTE" 1
-verificar_que T-08g "plugin do nó 'novo' passou a permitir o entrante" \
-  "≥ 1 linha 'Permitted enode://<entrante>' no 'novo'" "$(conta_novo "Permitted enode://$K_ENT") linha(s)" \
-  test "$(conta_novo "Permitted enode://$K_ENT")" -ge 1
-verificar_que T-08h "entrante baixou a cadeia inteira (FULL desde o gênesis)" \
-  "entrante a ≤ 1 bloco do validator" "validator $BV, entrante ${BE:-?}" \
-  test -n "$BE" -a $(( BV - ${BE:-0} )) -le 1
+reproduzir_defeito_que "$REF_DEFEITO" T-08f "mesmo cadastrado, o entrante NÃO conecta em 3 min (especificação: deveria conectar)" \
+  "0 pares" "$(pares "$PORTA_ENTRANTE") par(es)" test "$(pares "$PORTA_ENTRANTE")" = 0
+reproduzir_defeito_que "$REF_DEFEITO" T-08g "o 'novo' nunca chega a decidir sobre o entrante (especificação: deveria permitir após o cadastro)" \
+  "0 linhas 'Permitted enode://<entrante>' no 'novo'" "$(conta_novo "Permitted enode://$K_ENT") linha(s)" \
+  test "$(conta_novo "Permitted enode://$K_ENT")" -eq 0
+reproduzir_defeito "$REF_DEFEITO" T-08h "entrante NÃO baixa a cadeia: fica no bloco 0 (especificação: deveria acompanhar o validator, hoje no bloco $BV)" \
+  "0" "${BE:-?}"
+
+passo "Parar o entrante (libera memória para os próximos testes; logs já guardados e coletados na finalização)"
+em "$SN" executar "parar entrante" docker compose stop entrante

@@ -38,10 +38,17 @@ echo "## Verificações"
 echo
 echo "| | ID | Estado | Verificação | Esperado | Obtido |"
 echo "|---|---|---|---|---|---|"
-jq -r 'def c: tostring | gsub("\\|"; "¦"); "| \(if .observacao then "🔎" elif .ok then "✅" else "❌" end) | \(.id) | \(.estado) | \(.descricao|c) | \(.esperado|c) | \(.obtido|c) |"' "$V"
+jq -r 'def c: tostring | gsub("\\|"; "¦"); "| \(if .observacao then "🔎" elif (.defeito // "") != "" and .ok then "🐞" elif .ok then "✅" else "❌" end) | \(.id) | \(.estado) | \(.descricao|c) | \(.esperado|c) | \(.obtido|c) |"' "$V"
 echo
+echo "🐞 = defeito conhecido de um componente testado, reproduzido de propósito como demonstração permanente (o esperado é o comportamento defeituoso; ver descrição e referência)."
 echo "🔎 = observação: comportamento comparado com a documentação do componente testado; não conta como falha da execução."
 echo
+if jq -e -s 'any(.[]; (.defeito // "") != "")' "$V" >/dev/null; then
+  echo "## Defeitos reproduzidos"
+  echo
+  jq -r 'select((.defeito // "") != "") | "- \(if .ok then "🐞" else "❌ (não reproduzido)" end) **\(.id)** — \(.descricao) — \(.defeito)"' "$V"
+  echo
+fi
 echo "## Desvios deliberados em relação ao roteiro oficial da RBB"
 echo
 jq -r 'select(.tipo=="desvio") | "- \(.descricao)"' "$F"

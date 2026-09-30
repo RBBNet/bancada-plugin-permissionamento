@@ -91,12 +91,15 @@ _registrar_verificacao() {
   echo "  │ obtido:   $obtido"
   # Dados brutos: a saída exata da ferramenta que fez o teste (ex.: remetente, hash, bloco)
   [ "$dados" != "null" ] && echo "  │ dados brutos: $dados"
-  if [ "${OBSERVACAO:-0}" = 1 ]; then
+  if [ -n "${DEFEITO:-}" ]; then
+    if [ "$ok" = true ]; then echo "  └ 🐞 DEFEITO REPRODUZIDO ($DEFEITO)"
+    else echo "  └ ✘ FALHOU: o defeito NÃO se reproduziu — o comportamento mudou ($DEFEITO)"; FALHAS=$((FALHAS + 1)); fi
+  elif [ "${OBSERVACAO:-0}" = 1 ]; then
     echo "  └ 🔎 OBSERVAÇÃO ($([ "$ok" = true ] && echo "confere com a documentação" || echo "NÃO confere com a documentação")) — não conta como falha da execução"
   elif [ "$ok" = true ]; then echo "  └ ✔ OK"; else echo "  └ ✘ FALHOU"; FALHAS=$((FALHAS + 1)); fi
   jq -cn --arg t "$(agora)" --arg id "$id" --arg d "$desc" --arg e "$esperado" --arg o "$obtido" \
-    --argjson ok "$ok" --argjson dados "$dados" --arg estado "${ESTADO_ATUAL:-}" --argjson obs "$([ "${OBSERVACAO:-0}" = 1 ] && echo true || echo false)" \
-    '{instante:$t, id:$id, descricao:$d, estado:$estado, esperado:$e, obtido:$o, ok:$ok, observacao:$obs, dados:$dados}' \
+    --argjson ok "$ok" --argjson dados "$dados" --arg estado "${ESTADO_ATUAL:-}" --argjson obs "$([ "${OBSERVACAO:-0}" = 1 ] && echo true || echo false)" --arg defeito "${DEFEITO:-}" \
+    '{instante:$t, id:$id, descricao:$d, estado:$estado, esperado:$e, obtido:$o, ok:$ok, observacao:$obs, defeito:$defeito, dados:$dados}' \
     >> "$EXEC_DIR/verificacoes.jsonl"
   [ "$NO_GITHUB" = "true" ] && [ "$ok" != true ] && [ "${OBSERVACAO:-0}" != 1 ] && echo "::error title=$id::$desc — esperado: $esperado; obtido: $obtido"
   [ "$NO_GITHUB" = "true" ] && [ "$ok" != true ] && [ "${OBSERVACAO:-0}" = 1 ] && echo "::warning title=$id (observação)::$desc — documentação: $esperado; obtido: $obtido"
@@ -160,3 +163,10 @@ minusculo() { echo "$1" | tr 'A-F' 'a-f'; }
 # Registra um comportamento comparado com a documentação do componente, SEM contar como falha
 # da execução (usado para achados sobre o plugin, que não são defeitos da bancada).
 observar() { OBSERVACAO=1 verificar "$@"; }
+
+# reproduzir_defeito <referência> <id> <descrição> <comportamento-defeituoso-esperado> <obtido> [dados]
+# Demonstração permanente de um defeito conhecido de um componente testado (ex.: plugin numa versão
+# específica). O "esperado" é o comportamento DEFEITUOSO: ✔ (🐞) enquanto o defeito se reproduz;
+# ✘ se deixar de se reproduzir (o comportamento mudou e o teste precisa ser revisto).
+reproduzir_defeito() { local ref="$1"; shift; DEFEITO="$ref" verificar "$@"; }
+reproduzir_defeito_que() { local ref="$1"; shift; DEFEITO="$ref" verificar_que "$@"; }
