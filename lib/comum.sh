@@ -91,12 +91,15 @@ _registrar_verificacao() {
   echo "  │ obtido:   $obtido"
   # Dados brutos: a saída exata da ferramenta que fez o teste (ex.: remetente, hash, bloco)
   [ "$dados" != "null" ] && echo "  │ dados brutos: $dados"
-  if [ "$ok" = true ]; then echo "  └ ✔ OK"; else echo "  └ ✘ FALHOU"; FALHAS=$((FALHAS + 1)); fi
+  if [ "${OBSERVACAO:-0}" = 1 ]; then
+    echo "  └ 🔎 OBSERVAÇÃO ($([ "$ok" = true ] && echo "confere com a documentação" || echo "NÃO confere com a documentação")) — não conta como falha da execução"
+  elif [ "$ok" = true ]; then echo "  └ ✔ OK"; else echo "  └ ✘ FALHOU"; FALHAS=$((FALHAS + 1)); fi
   jq -cn --arg t "$(agora)" --arg id "$id" --arg d "$desc" --arg e "$esperado" --arg o "$obtido" \
-    --argjson ok "$ok" --argjson dados "$dados" --arg estado "${ESTADO_ATUAL:-}" \
-    '{instante:$t, id:$id, descricao:$d, estado:$estado, esperado:$e, obtido:$o, ok:$ok, dados:$dados}' \
+    --argjson ok "$ok" --argjson dados "$dados" --arg estado "${ESTADO_ATUAL:-}" --argjson obs "$([ "${OBSERVACAO:-0}" = 1 ] && echo true || echo false)" \
+    '{instante:$t, id:$id, descricao:$d, estado:$estado, esperado:$e, obtido:$o, ok:$ok, observacao:$obs, dados:$dados}' \
     >> "$EXEC_DIR/verificacoes.jsonl"
-  [ "$NO_GITHUB" = "true" ] && [ "$ok" != true ] && echo "::error title=$id::$desc — esperado: $esperado; obtido: $obtido"
+  [ "$NO_GITHUB" = "true" ] && [ "$ok" != true ] && [ "${OBSERVACAO:-0}" != 1 ] && echo "::error title=$id::$desc — esperado: $esperado; obtido: $obtido"
+  [ "$NO_GITHUB" = "true" ] && [ "$ok" != true ] && [ "${OBSERVACAO:-0}" = 1 ] && echo "::warning title=$id (observação)::$desc — documentação: $esperado; obtido: $obtido"
   return 0
 }
 
@@ -152,3 +155,8 @@ acompanha() {
   for p in "$@"; do b=$(bloco_atual "$p"); [ -n "$b" ] && [ "$b" -gt 0 ] && [ $((ref - b)) -le 1 ] || return 1; done
 }
 minusculo() { echo "$1" | tr 'A-F' 'a-f'; }
+
+# observar <id> <descrição> <esperado-segundo-a-documentação> <obtido> [dados-json]
+# Registra um comportamento comparado com a documentação do componente, SEM contar como falha
+# da execução (usado para achados sobre o plugin, que não são defeitos da bancada).
+observar() { OBSERVACAO=1 verificar "$@"; }

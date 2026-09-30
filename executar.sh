@@ -47,8 +47,9 @@ finalizar() {
   bash "$RAIZ/lib/relatorio.sh" "$EXEC_DIR" > "$EXEC_DIR/resumo.md"
   [ -n "${GITHUB_STEP_SUMMARY:-}" ] && cat "$EXEC_DIR/resumo.md" >> "$GITHUB_STEP_SUMMARY"
   local total ok
-  total=$(wc -l < "$EXEC_DIR/verificacoes.jsonl" | tr -d ' ')
-  ok=$(jq -s '[.[] | select(.ok)] | length' "$EXEC_DIR/verificacoes.jsonl")
+  total=$(jq -s '[.[] | select(.observacao != true)] | length' "$EXEC_DIR/verificacoes.jsonl")
+  ok=$(jq -s '[.[] | select(.observacao != true and .ok)] | length' "$EXEC_DIR/verificacoes.jsonl")
+  local obs; obs=$(jq -s '[.[] | select(.observacao == true)] | length' "$EXEC_DIR/verificacoes.jsonl")
   echo
   echo "════════════════════════════════════════════════════════════════════"
   if [ "$rc" -eq 2 ]; then
@@ -58,6 +59,7 @@ finalizar() {
   else
     echo "  RESULTADO: $((total - ok)) de $total verificações FALHARAM"; rc=1
   fi
+  [ "$obs" -gt 0 ] && echo "  + $obs observação(ões) sobre componentes testados (ver relatório; não contam como falha)"
   echo "  relatório: execucoes/$EXEC_ID/resumo.md"
   echo "════════════════════════════════════════════════════════════════════"
   exit "$rc"
@@ -67,6 +69,6 @@ trap finalizar EXIT
 echo "Bancada do plugin de permissionamento da RBB — execução $EXEC_ID"
 for f in fases/00-preparar.sh fases/01-rede-e0.sh fases/02-gen01-e1.sh fases/03-gen02-e2.sh \
          testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh \
-         testes/T04-permissionamento-no.sh; do
+         testes/T04-permissionamento-no.sh testes/T05-T07-no-com-plugin.sh; do
   source "$RAIZ/$f"
 done

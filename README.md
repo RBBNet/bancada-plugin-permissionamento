@@ -64,6 +64,9 @@ de cada passo e o resumo; as evidências ficam anexadas como artefato.
 | T-01, T-02 | Linha de base do permissionamento **nativo**: conta permitida × conta não cadastrada | — |
 | T-03 | Nativo × caminho do plugin em estados históricos (antes e depois das regras). Testa a lógica dos contratos via `eth_call`; **não** executa um nó com o plugin | — |
 | T-04 | Permissionamento **nativo** de nós: um nó novo, não cadastrado, tenta conectar ao boot e é recusado (evidência: linha `Rejected enode://…` no log TRACE de permissionamento do boot). É cadastrado no NodeRulesV2 e conecta e sincroniza sozinho (linha `Permitted enode://…`) | **E3** |
+| T-05 | Migração do nó "novo" para o **Besu 25.12.0 com o plugin** v1.0.0-rc.1 (jar do release, SHA-256 conferido), mantendo chave e banco: plugin registrado com os Ingress da RBB, NodeRules do gen02 resolvido, reconexão e sincronização. Rede **mista** (1 nó com plugin, 3 nativos) | **E4** |
+| T-06, T-07 | Transações enviadas **pelo nó com plugin**: conta permitida → minerada e importada por todos; conta não cadastrada → recusada com **o mesmo código e mensagem do nativo** (T-02). Contadores do plugin confirmam a checagem também na importação de blocos | — |
+| 🔎 T-07m | Observação: as métricas existem, mas com nomes diferentes dos documentados no release (`besupermissioning_onchain_…` em vez de `besu_permissioning_…`) | — |
 
 Toda diferença deliberada em relação ao roteiro oficial é impressa na execução como
 "DESVIO DO ROTEIRO" e listada no relatório.

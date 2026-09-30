@@ -43,6 +43,18 @@ fato imagem.rbb_cli "$RBB_IMAGE"
 executar "baixar imagem do Besu dos nós" docker pull -q "$BESU_IMAGEM_INICIAL"
 fato imagem.besu_inicial "$BESU_IMAGEM_INICIAL"
 
+passo "Plugin de permissionamento ${PLUGIN_VERSAO} (jar do release, conferido pelo SHA-256)"
+mkdir -p "$TRAB/plugin"
+executar "baixar o jar do plugin" curl -sSL -o "$TRAB/plugin/besu-plugin-permissioning.jar" "$PLUGIN_URL"
+SHA_OBTIDO=$(shasum -a 256 "$TRAB/plugin/besu-plugin-permissioning.jar" | cut -d' ' -f1)
+verificar P-01 "SHA-256 do jar do plugin confere com o fixado em versoes.env" "$PLUGIN_SHA256" "$SHA_OBTIDO"
+[ "$SHA_OBTIDO" = "$PLUGIN_SHA256" ] || abortar "jar do plugin diferente do esperado"
+fato plugin.versao "$PLUGIN_VERSAO"
+fato plugin.url "$PLUGIN_URL"
+fato plugin.sha256 "$SHA_OBTIDO"
+executar "baixar imagem do Besu do nó com plugin" docker pull -q "$BESU_IMAGEM_PLUGIN"
+fato imagem.besu_plugin "$BESU_IMAGEM_PLUGIN"
+
 passo "Dependências Node.js"
 em "$TRAB/Permissionamento/gen01" executar "gen01: yarn install (yarn.lock do repositório)" \
     npx --yes "yarn@${YARN_VERSAO}" install --frozen-lockfile --non-interactive
