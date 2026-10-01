@@ -24,7 +24,7 @@ echo "## Ambiente"
 echo
 echo "| Item | Valor |"
 echo "|---|---|"
-for k in bancada.commit bancada.alteracoes_locais ambiente.executor ambiente.sistema ambiente.arquitetura ambiente.docker ambiente.docker_compose ambiente.node imagem.besu_inicial imagem.besu_plugin plugin.versao plugin.sha256 imagem.rbb_cli repositorio.start-network repositorio.Permissionamento repositorio.scripts-permissionamento dependencia.gen02_openzeppelin; do
+for k in execucao.filtro_de_testes bancada.commit bancada.alteracoes_locais ambiente.executor ambiente.sistema ambiente.arquitetura ambiente.docker ambiente.docker_compose ambiente.node imagem.besu_inicial imagem.besu_plugin plugin.versao plugin.sha256 imagem.rbb_cli repositorio.start-network repositorio.Permissionamento repositorio.scripts-permissionamento dependencia.gen02_openzeppelin; do
   v=$(fatov "$k"); [ -n "$v" ] && echo "| $k | \`$(echo "$v" | md)\` |"
 done
 echo

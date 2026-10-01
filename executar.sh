@@ -67,10 +67,18 @@ finalizar() {
 trap finalizar EXIT
 
 echo "Bancada do plugin de permissionamento da RBB — execução $EXEC_ID"
-for f in fases/00-preparar.sh fases/01-rede-e0.sh fases/02-gen01-e1.sh fases/03-gen02-e2.sh \
-         testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh \
-         testes/T04-permissionamento-no.sh testes/T05-T07-no-com-plugin.sh \
-         testes/T08-no-entrante-com-plugin.sh testes/T09-observer-com-plugin.sh \
-         testes/T10-configuracao-errada.sh; do
+FASES="fases/00-preparar.sh fases/01-rede-e0.sh fases/02-gen01-e1.sh fases/03-gen02-e2.sh"
+TODOS_TESTES="testes/T01-T02-linha-de-base.sh testes/T03-caminhos-nativo-plugin.sh testes/T04-permissionamento-no.sh
+  testes/T05-T07-no-com-plugin.sh testes/T08-no-entrante-com-plugin.sh testes/T09-observer-com-plugin.sh
+  testes/T10-configuracao-errada.sh testes/T11-validadores-com-plugin.sh testes/T12-boot-com-plugin-e-rede-toda.sh"
+# TESTES="T04 T11" ./executar.sh — roda a montagem da rede e só os testes indicados (para desenvolvimento;
+# as execuções oficiais rodam todos). O filtro fica registrado no relatório.
+SELECIONADOS=""
+for t in $TODOS_TESTES; do
+  if [ -z "${TESTES:-}" ]; then SELECIONADOS="$SELECIONADOS $t"
+  else for pref in $TESTES; do case "$(basename "$t")" in "$pref"*) SELECIONADOS="$SELECIONADOS $t";; esac; done; fi
+done
+[ -n "${TESTES:-}" ] && jq -cn --arg t "$(agora)" --arg v "SOMENTE $TESTES" '{tipo:"fato", instante:$t, chave:"execucao.filtro_de_testes", valor:$v}' >> "$EXEC_DIR/fatos.jsonl"
+for f in $FASES $SELECIONADOS; do
   source "$RAIZ/$f"
 done
