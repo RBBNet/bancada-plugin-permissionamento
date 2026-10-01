@@ -83,7 +83,7 @@ esperar_ate "nó novo sincronizar" 120 acompanha "$PORTA_VALIDATOR" "$PORTA_NOVO
 verificar_que T-05g "nó novo (plugin) reconectado ao boot" "≥ 1 par" "$(pares "$PORTA_NOVO") par(es)" tem_pares "$PORTA_NOVO" 1
 bv=$(bloco_atual "$PORTA_VALIDATOR"); bn=$(bloco_atual "$PORTA_NOVO")
 verificar_que T-05h "nó novo (plugin) sincronizado com o validator" "diferença ≤ 1 bloco" "validator $bv, novo $bn" \
-  test $((bv - bn)) -le 1
+  acompanha "$PORTA_VALIDATOR" "$PORTA_NOVO"
 info "log de permissionamento do nó novo, só linhas escritas após a migração (plugin): regras e decisão sobre o boot"
 perm_depois | grep -E "Resolved (AccountRules|NodeRules)|enode://$K_BOOT" \
   | grep -v Checking | head -4 | cut -c1-240 | sed 's/^/    │ /'
@@ -96,11 +96,11 @@ passo "T-06: conta permitida (GLOBAL_ADMIN da Org 1) envia transação pelo nó 
 R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 verificar T-06 "transação de conta permitida, enviada pelo nó com plugin" "MINERADA, status 1" \
-  "$(jq -r 'if .resultado=="MINERADA" then "MINERADA, status \(.status)" else "RECUSADA: \(.codigo) \(.erro)" end' <<<"$R")" "$R"
+  "$(jq -r .resumo <<<"$R")" "$R"
 HASH=$(jq -r '.hash // empty' <<<"$R")
+# Que o nó com plugin importou o bloco já está garantido pelo T-06: o tx.js obteve o recibo por ele.
 if [ -n "$HASH" ]; then
-  verificar T-06b "nó com plugin importou o bloco com a transação (recibo disponível nele)" "status 0x1" \
-    "status $(rpc "$PORTA_NOVO" eth_getTransactionReceipt "[\"$HASH\"]" | jq -r '.result.status // "sem recibo"')"
+  esperar_ate "writer importar o bloco da transação" 30 tem_recibo "$PORTA_WRITER" "$HASH" || true
   verificar T-06c "writer (nativo) importou o mesmo bloco (recibo disponível nele)" "status 0x1" \
     "status $(rpc "$PORTA_WRITER" eth_getTransactionReceipt "[\"$HASH\"]" | jq -r '.result.status // "sem recibo"')"
 fi
@@ -108,10 +108,9 @@ fi
 passo "T-07: conta nunca cadastrada envia transação pelo nó com plugin"
 R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" aleatoria)
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
-BASE=$(jq -r 'select(.id=="T-02") | .obtido' "$EXEC_DIR/verificacoes.jsonl" | tail -1)
 verificar T-07 "transação de conta não cadastrada, enviada pelo nó com plugin — mesma recusa do nativo (T-02)" \
-  "${BASE:-RECUSADA: -32007 Sender account not authorized to send transactions}" \
-  "$(jq -r 'if .resultado=="RECUSADA" then "RECUSADA: \(.codigo) \(.erro)" else "MINERADA no bloco \(.bloco)" end' <<<"$R")" "$R"
+  'RECUSADA: -32007 Sender account not authorized to send transactions' \
+  "$(jq -r .resumo <<<"$R")" "$R"
 
 passo "Métricas do plugin (o release v1.0.0-rc.1 documenta besu_permissioning_transactions_total_checked etc.)"
 METRICAS=$(curl -s -m 10 "localhost:${PORTA_METRICAS_NOVO}/metrics" | grep -i "permissioning" | grep -v '^#')

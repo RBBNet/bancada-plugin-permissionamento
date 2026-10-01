@@ -1,6 +1,8 @@
 // Envia uma transação simples (valor 0, gasPrice 0) e imprime o resultado em JSON.
 // Uso: node tx.js <url-rpc> <chave-privada | aleatoria>
-// Saída: {remetente, resultado: "MINERADA"|"RECUSADA", hash?, bloco?, status?, erro?, codigo?}
+// Saída: {remetente, resultado: "MINERADA"|"RECUSADA"|"ERRO", hash?, bloco?, status?, erro?, codigo?, resumo}
+//   RECUSADA = o nó respondeu com erro JSON-RPC (tem código); ERRO = tempo esgotado, rede etc.
+//   resumo = texto curto para as verificações: "MINERADA, status 1" | "RECUSADA: <código> <mensagem>" | "ERRO: <mensagem>"
 const { ethers } = require('ethers');
 
 (async () => {
@@ -17,11 +19,19 @@ const { ethers } = require('ethers');
     const recibo = await tx.wait(1, 60000);
     Object.assign(saida, { resultado: 'MINERADA', hash: tx.hash, bloco: recibo.blockNumber, status: recibo.status });
   } catch (e) {
-    Object.assign(saida, {
-      resultado: 'RECUSADA',
-      erro: (e.error && e.error.message) || (e.info && e.info.error && e.info.error.message) || e.shortMessage || e.message,
-      codigo: (e.error && e.error.code) || (e.info && e.info.error && e.info.error.code) || null,
-    });
+    if (e.receipt) {  // minerada com status 0 (ethers lança CALL_EXCEPTION)
+      Object.assign(saida, { resultado: 'MINERADA', hash: e.receipt.hash, bloco: e.receipt.blockNumber, status: e.receipt.status });
+    } else {
+      const codigo = (e.error && e.error.code) || (e.info && e.info.error && e.info.error.code) || null;
+      Object.assign(saida, {
+        resultado: codigo !== null ? 'RECUSADA' : 'ERRO',
+        erro: (e.error && e.error.message) || (e.info && e.info.error && e.info.error.message) || e.shortMessage || e.message || e.code || String(e),
+        codigo,
+      });
+    }
   }
+  saida.resumo = saida.resultado === 'MINERADA' ? `MINERADA, status ${saida.status}`
+    : saida.resultado === 'RECUSADA' ? `RECUSADA: ${saida.codigo} ${saida.erro}` : `ERRO: ${saida.erro}`;
   console.log(JSON.stringify(saida));
+  process.exit(0);  // o provedor do ethers mantém tentativas de conexão pendentes
 })();

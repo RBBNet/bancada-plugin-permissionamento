@@ -70,7 +70,7 @@ verificar E1-03 "pares (validator/boot/writer)" "1/2/1" "$(pares "$PORTA_VALIDAT
 esperar_ate "boot e writer sincronizados com o validator" 120 acompanha "$PORTA_VALIDATOR" "$PORTA_BOOT" "$PORTA_WRITER"
 bv=$(bloco_atual "$PORTA_VALIDATOR"); bb=$(bloco_atual "$PORTA_BOOT"); bw=$(bloco_atual "$PORTA_WRITER")
 verificar_que E1-04 "boot e writer acompanham o validator" "diferença ≤ 1 bloco" "validator $bv, boot $bb, writer $bw" \
-  test $((bv - bb)) -le 1 -a $((bv - bw)) -le 1
+  acompanha "$PORTA_VALIDATOR" "$PORTA_BOOT" "$PORTA_WRITER"
 verificar E1-05 "versão do Besu no boot" "besu/v${BESU_VERSAO_INICIAL}" "$(rpc "$PORTA_BOOT" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
 verificar E1-06 "versão do Besu no writer" "besu/v${BESU_VERSAO_INICIAL}" "$(rpc "$PORTA_WRITER" web3_clientVersion | jq -r .result | cut -d/ -f1-2)"
 estado E1 "gen01 ativo: validator, boot e writer permitidos; admin master ${CONTA_ADMIN_ENDERECO}"

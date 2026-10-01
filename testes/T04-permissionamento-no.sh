@@ -74,7 +74,7 @@ verificar T-04i "nó novo aparece entre os pares do boot" "presente" \
   "$(rpc "$PORTA_BOOT" admin_peers | jq -r --arg id "$K_NOVO" '[.result[].enode | select(contains($id))] | if length>0 then "presente" else "ausente" end')"
 bv=$(bloco_atual "$PORTA_VALIDATOR"); bn=$(bloco_atual "$PORTA_NOVO")
 verificar_que T-04j "nó novo sincronizado com o validator" "diferença ≤ 1 bloco" "validator $bv, novo $bn" \
-  test $((bv - bn)) -le 1 -a "$bn" -gt 0
+  acompanha "$PORTA_VALIDATOR" "$PORTA_NOVO"
 verificar T-04k "boot com 3 pares (validator, writer e novo)" "3" "$(pares "$PORTA_BOOT")"
 PERMISSOES=$(conta "Permitted enode://$K_NOVO")
 info "log de permissionamento do boot — primeira permissão ao nó novo:"

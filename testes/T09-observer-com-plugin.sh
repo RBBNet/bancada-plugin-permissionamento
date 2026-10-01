@@ -30,7 +30,7 @@ LOG_PERM_OBS="$SN/volumes/observador/logs/besu_permissionamento.log"
 
 passo "Localizar na cadeia o primeiro bloco com transações (deploy do gen01)"
 PRIMEIRO_TX=""
-for b in $(seq 1 60); do
+for b in $(seq $(( ${B_ANTES_GEN01:-0} + 1 )) $(( ${B_ANTES_GEN01:-0} + 60 ))); do   # B_ANTES_GEN01: fase 02
   n=$(rpc "$PORTA_VALIDATOR" eth_getBlockTransactionCountByNumber "[\"$(printf '0x%x' "$b")\"]" | jq -r .result)
   [ "$n" != "0x0" ] && [ -n "$n" ] && [ "$n" != "null" ] && { PRIMEIRO_TX=$b; break; }
 done

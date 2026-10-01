@@ -26,6 +26,13 @@ PORTA_WRITER=${PORTA_WRITER:-20003}
 
 finalizar() {
   local rc=$?
+  # Saída fora de abortar() antes do fim (ex.: variável não definida com set -u): conta como aborto,
+  # para que o relatório não declare sucesso com testes que nem chegaram a rodar.
+  if [ "$rc" -ne 2 ] && [ "${CONCLUIDA:-0}" != 1 ]; then
+    jq -cn --arg t "$(agora)" --arg d "execução interrompida antes do fim (código de saída $rc)" \
+      '{tipo:"aborto", instante:$t, motivo:$d}' >> "$EXEC_DIR/fatos.jsonl"
+    rc=2
+  fi
   [ "$NO_GITHUB" = "true" ] && echo "::endgroup::"
   echo; echo "── Finalização ────────────────────────────────────────────────────"
   if [ -f "$TRAB/start-network/docker-compose.yml" ]; then
@@ -82,3 +89,4 @@ done
 for f in $FASES $SELECIONADOS; do
   source "$RAIZ/$f"
 done
+CONCLUIDA=1

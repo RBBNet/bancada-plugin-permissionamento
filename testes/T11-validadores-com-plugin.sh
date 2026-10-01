@@ -101,12 +101,12 @@ EOF
   local R; R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:$p" "$CONTA_ADMIN_CHAVE")
   echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
   verificar "T-11.$i-d" "transação de conta permitida enviada ao validador '$v' (plugin)" "MINERADA, status 1" \
-    "$(jq -r 'if .resultado=="MINERADA" then "MINERADA, status \(.status)" else "RECUSADA: \(.codigo) \(.erro)" end' <<<"$R")" "$R"
+    "$(jq -r .resumo <<<"$R")" "$R"
   R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:$p" aleatoria)
   echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
   verificar "T-11.$i-e" "transação de conta não cadastrada enviada ao validador '$v' (plugin)" \
     "RECUSADA: -32007 Sender account not authorized to send transactions" \
-    "$(jq -r 'if .resultado=="RECUSADA" then "RECUSADA: \(.codigo) \(.erro)" else "MINERADA no bloco \(.bloco)" end' <<<"$R")" "$R"
+    "$(jq -r .resumo <<<"$R")" "$R"
 }
 migrar_validador v2 1
 migrar_validador v3 2

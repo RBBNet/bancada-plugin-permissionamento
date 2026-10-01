@@ -150,6 +150,7 @@ em() {
 # Condições reavaliadas a cada tentativa (para usar com esperar_ate)
 tem_pares()   { local n; n=$(pares "$1"); [ -n "$n" ] && [ "$n" -ge "$2" ]; }
 responde()    { [ -n "$(bloco_atual "$1")" ]; }
+tem_recibo()  { [ -n "$(rpc "$1" eth_getTransactionReceipt "[\"$2\"]" | jq -r '.result.status // empty' 2>/dev/null)" ]; }
 # acompanha <porta-ref> <porta>... — cada porta está no máximo 1 bloco atrás da referência (e > 0)
 acompanha() {
   local ref; ref=$(bloco_atual "$1"); shift

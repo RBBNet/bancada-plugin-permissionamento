@@ -52,14 +52,14 @@ R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_NOVO}" "$CONTA_ADMI
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 reproduzir_defeito "$REF_DEFEITO" T-10c "transação de conta PERMITIDA é recusada pelo nó mal configurado" \
   "RECUSADA: -32007 Sender account not authorized to send transactions" \
-  "$(jq -r 'if .resultado=="RECUSADA" then "RECUSADA: \(.codigo) \(.erro)" else "MINERADA no bloco \(.bloco)" end' <<<"$R")" "$R"
+  "$(jq -r .resumo <<<"$R")" "$R"
 
 passo "Conta PERMITIDA envia transação pelo writer (nativo); o bloco com ela chega ao nó mal configurado"
 R=$(node "$RAIZ/ferramentas/tx.js" "http://localhost:${PORTA_WRITER}" "$CONTA_ADMIN_CHAVE")
 echo "$R" >> "$EXEC_DIR/transacoes.jsonl"
 BTX=$(jq -r '.bloco // empty' <<<"$R")
 verificar T-10d "transação de conta permitida, pelo writer (nativo), minerada normalmente" "MINERADA, status 1" \
-  "$(jq -r 'if .resultado=="MINERADA" then "MINERADA, status \(.status)" else "RECUSADA: \(.codigo) \(.erro)" end' <<<"$R")" "$R"
+  "$(jq -r .resumo <<<"$R")" "$R"
 sleep 30
 BN=$(bloco_atual "$PORTA_NOVO"); BV=$(bloco_atual "$PORTA_VALIDATOR")
 CONSOLE=$(cd "$SN" && docker compose logs --since 5m novo 2>/dev/null)
@@ -84,4 +84,4 @@ esperar_ate "nó novo voltar a acompanhar a cadeia" 240 acompanha "$PORTA_VALIDA
 fato t10.segundos_ate_recuperar "$((SECONDS - t0))"
 BN=$(bloco_atual "$PORTA_NOVO"); BV=$(bloco_atual "$PORTA_VALIDATOR")
 verificar_que T-10g "com a configuração corrigida, o nó se recupera sozinho e volta a acompanhar a cadeia" \
-  "diferença ≤ 1 bloco" "validator $BV, novo ${BN:-?}" test -n "$BN" -a $(( BV - ${BN:-0} )) -le 1
+  "diferença ≤ 1 bloco" "validator $BV, novo ${BN:-?}" acompanha "$PORTA_VALIDATOR" "$PORTA_NOVO"
