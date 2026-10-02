@@ -3,12 +3,9 @@ name: Bancada
 # Execução completa da bancada numa máquina limpa do GitHub. O log de cada passo fica nesta
 # página, o resumo aparece no topo da execução e todos os arquivos de evidência (logs dos nós,
 # verificações, transações, comandos) ficam anexados como artefato.
+# Disparo somente manual: aba Actions → Bancada → Run workflow (ou gh workflow run bancada.yml --ref main).
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
 
 permissions:
   contents: read

@@ -52,7 +52,7 @@ Para desenvolvimento, `TESTES="T11 T12" ./executar.sh` monta a rede e roda só o
 Cada execução gera `execucoes/<data-hora>/`, com o relatório `resumo.md` e todas as
 evidências. O código de saída é 0 se todas as verificações passarem.
 
-**No GitHub:** aba *Actions* → *Bancada* → *Run workflow*. A página da execução mostra o log
+**No GitHub:** aba *Actions* → *Bancada* → *Run workflow* (a bancada só roda quando disparada assim; push não a dispara). A página da execução mostra o log
 de cada passo e o resumo; as evidências ficam anexadas como artefato.
 
 ## O que é executado hoje
